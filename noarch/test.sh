@@ -1,6 +1,6 @@
 #!/bin/bash
 ### Main Variables
-  VESTA=${VESTA:"/usr/local/vesta"}
+  VESTA=${VESTA:-"/usr/local/vesta"}
   
 ### Script Variables 
   LONG=true
