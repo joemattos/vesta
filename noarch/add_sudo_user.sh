@@ -10,13 +10,13 @@ if [ ! -d "/etc/sudoers.d" ]; then
   chmod 750 /etc/sudoers.d
 fi
 
-echo '### Admin Sudo User - No Arch - Created by VestaCP
+echo '### VestaCP - Admin Sudo User - No Arch 
 Defaults env_keep="VESTA"
 Defaults:admin !syslog
 Defaults:admin !requiretty
 Defaults:root !requiretty
 
-### Limit Sudo to VestaCP Bin
+### Limit Sudo to VestaCP Script Bin
 admin   ALL=NOPASSWD:/usr/local/vesta/bin/*' > /etc/sudoers.d/admin
     
 chmod 440 /etc/sudoers.d/admin
