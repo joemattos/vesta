@@ -2,7 +2,7 @@
   VESTA=${VESTA:"/usr/local/vesta"}
   
 ### Script Variables 
-LONG=true
+  LONG=true
 
   checkStructure() {
     local file=$1
