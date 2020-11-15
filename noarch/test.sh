@@ -9,7 +9,7 @@
     local file=$1
     local perms=$2
     
-      if [[ "${file: -1}" == '*' ]]; then
+      if [[ "${file: -1}" == '*' ]] && [[ -d "${file: -1}" ]]; then
         for dirs in $(find ${file} -type f); do
           checkStructure "${dirs}" "${perms}"
         done
