@@ -1,3 +1,4 @@
+#!/bin/bash
 ### Main Variables
   VESTA=${VESTA:"/usr/local/vesta"}
   
