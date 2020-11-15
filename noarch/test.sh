@@ -40,14 +40,14 @@
       
     checkStructure "$VESTA/ssl" "755"
       checkStructure "$VESTA/ssl/*" "660"    
-      checkStructure "$VESTA/ssl/certificate.crt"
-      checkStructure "$VESTA/ssl/certificate.crt"
+      checkStructure "$VESTA/ssl/certificate.crt" "660" 
+      checkStructure "$VESTA/ssl/certificate.crt" "660" 
       
     checkStructure "$VESTA/log" "750"
       checkStructure "$VESTA/log/*" "660"
-      checkStructure "$VESTA/log/auth.log"
-      checkStructure "$VESTA/log/system.log"
-      checkStructure "$VESTA/log/nginx-error.log"
+      checkStructure "$VESTA/log/auth.log" "660" 
+      checkStructure "$VESTA/log/system.log" "660" 
+      checkStructure "$VESTA/log/nginx-error.log" "660" 
       
     checkStructure "$VESTA/data" "755"
       checkStructure "$VESTA/data/users" "750"
