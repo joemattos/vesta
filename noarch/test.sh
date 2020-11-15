@@ -41,8 +41,8 @@
     checkStructure "$VESTA/ssl" "755"
       checkStructure "$VESTA/ssl/*" "660"    
       checkStructure "$VESTA/ssl/certificate.crt" "660" 
-      checkStructure "$VESTA/ssl/certificate.crt" "660" 
-      
+      checkStructure "$VESTA/ssl/certificate.key" "660"
+
     checkStructure "$VESTA/log" "750"
       checkStructure "$VESTA/log/*" "660"
       checkStructure "$VESTA/log/auth.log" "660" 
@@ -53,7 +53,7 @@
       checkStructure "$VESTA/data/users" "750"
       checkStructure "$VESTA/data/ips" "750"
       checkStructure "$VESTA/data/firewall" "755"
-      checkStructure "$VESTA/data/sessions" "770"
+      checkStructure "$VESTA/data/sessions" "770" "admin:admin"
       
     checkStructure "$VESTA/data/queue" "750"
       checkStructure "$VESTA/data/queue/backup.pipe" "750"
