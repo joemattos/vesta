@@ -1,7 +1,5 @@
 #!/bin/bash
-
 # Vesta RHEL/CentOS installer v.05
-
 #----------------------------------------------------------#
 #                  Variables&Functions                     #
 #----------------------------------------------------------#
@@ -29,15 +27,6 @@ software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
     postgresql-server proftpd roundcubemail rrdtool rsyslog screen
     spamassassin sqlite sudo tar telnet unzip vesta vesta-ioncube vesta-nginx
     vesta-php vesta-softaculous vim-common vsftpd webalizer which zip"
-
-# Fix for old releases
-if [ "$release" -lt 7 ]; then
-    software=$(echo "$software" |sed -e "s/mariadb/mysql/g")
-    software=$(echo "$software" |sed -e "s/clamav-server/clamd/")
-    software=$(echo "$software" |sed -e "s/clamav-update//")
-    software=$(echo "$software" |sed -e "s/iptables-services//")
-    software="$software mod_extract_forwarded"
-fi
 
 # Defining help function
 help() {
@@ -248,7 +237,7 @@ fi
 
 # Checking wget
 if [ ! -e '/usr/bin/wget' ]; then
-    yum -y install wget
+    dnf -q -y install wget
     check_result $? "Can't install wget"
 fi
 
@@ -338,11 +327,7 @@ fi
 
 # Database stack
 if [ "$mysql" = 'yes' ]; then
-    if [ $release -ge 7 ]; then
-        echo '   - MariaDB Database Server'
-    else
-        echo '   - MySQL Database Server'
-    fi
+    echo '   - MariaDB Database Server'
 fi
 if [ "$postgresql" = 'yes' ]; then
     echo '   - PostgreSQL Database Server'
@@ -447,18 +432,17 @@ fi
 #----------------------------------------------------------#
 
 # Updating system
-yum -y update
-check_result $? 'yum update failed'
+dnf -q -y upgrade
+check_result $? 'dnf update failed'
 
 # Installing EPEL repository
-yum install epel-release -y
+dnf -q -y install epel-release 
 check_result $? "Can't install EPEL repository"
 
 # Installing Remi repository
 if [ "$remi" = 'yes' ] && [ ! -e "/etc/yum.repos.d/remi.repo" ]; then
     rpm -Uvh http://rpms.remirepo.net/enterprise/remi-release-$release.rpm
     check_result $? "Can't install REMI repository"
-    sed -i "s/enabled=0/enabled=1/g" /etc/yum.repos.d/remi.repo
 fi
 
 # Installing Nginx repository
@@ -473,11 +457,19 @@ echo "enabled=1" >> $nrepo
 vrepo='/etc/yum.repos.d/vesta.repo'
 echo "[vesta]" > $vrepo
 echo "name=Vesta - $REPO" >> $vrepo
-echo "baseurl=http://$RHOST/$REPO/$release/\$basearch/" >> $vrepo
+echo "baseurl=http://$RHOST/$REPO/7/\$basearch/" >> $vrepo
 echo "enabled=1" >> $vrepo
 echo "gpgcheck=1" >> $vrepo
 echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-VESTA" >> $vrepo
-wget c.vestacp.com/GPG.txt -O /etc/pki/rpm-gpg/RPM-GPG-KEY-VESTA
+    
+    ### Import VestaCP Repository Key
+    rpm --import https://c.vestacp.com/GPG.txt
+    
+    ### Enable Repositories  
+    dnf -q config-manager --set-enabled epel PowerTools vesta remi
+  
+    ### Fix php issue NEEDS REWORK
+    dnf -q -y module enable php:remi-7.3
 
 
 #----------------------------------------------------------#
@@ -491,15 +483,15 @@ mkdir nginx httpd php php-fpm vsftpd proftpd named exim dovecot clamd \
     spamassassin mysql postgresql mongodb vesta
 
 # Backup Nginx configuration
-service nginx stop > /dev/null 2>&1
+systemctl stop nginx > /dev/null 2>&1
 cp -r /etc/nginx/* $vst_backups/nginx > /dev/null 2>&1
 
 # Backup Apache configuration
-service httpd stop > /dev/null 2>&1
+systemctl stop httpd > /dev/null 2>&1
 cp -r /etc/httpd/* $vst_backups/httpd > /dev/null 2>&1
 
 # Backup PHP-FPM configuration
-service php-fpm stop >/dev/null 2>&1
+systemctl stop php-fpm >/dev/null 2>&1
 cp /etc/php.ini $vst_backups/php > /dev/null 2>&1
 cp -r /etc/php.d  $vst_backups/php > /dev/null 2>&1
 cp /etc/php-fpm.conf $vst_backups/php-fpm > /dev/null 2>&1
@@ -507,50 +499,48 @@ mv -f /etc/php-fpm.d/* $vst_backups/php-fpm/ > /dev/null 2>&1
 
 # Backup Bind configuration
 yum remove bind-chroot > /dev/null 2>&1
-service named stop > /dev/null 2>&1
+systemctl stop named > /dev/null 2>&1
 cp /etc/named.conf $vst_backups/named >/dev/null 2>&1
 
 # Backup Vsftpd configuration
-service vsftpd stop > /dev/null 2>&1
+systemctl stop vsftpd > /dev/null 2>&1
 cp /etc/vsftpd/vsftpd.conf $vst_backups/vsftpd >/dev/null 2>&1
 
 # Backup ProFTPD configuration
-service proftpd stop > /dev/null 2>&1
+systemctl stop proftpd > /dev/null 2>&1
 cp /etc/proftpd.conf $vst_backups/proftpd >/dev/null 2>&1
 
 # Backup Exim configuration
-service exim stop > /dev/null 2>&1
+systemctl stop exim > /dev/null 2>&1
 cp -r /etc/exim/* $vst_backups/exim >/dev/null 2>&1
 
 # Backup ClamAV configuration
-service clamd stop > /dev/null 2>&1
+systemctl stop clamd > /dev/null 2>&1
 cp /etc/clamd.conf $vst_backups/clamd >/dev/null 2>&1
 cp -r /etc/clamd.d $vst_backups/clamd >/dev/null 2>&1
 
 # Backup SpamAssassin configuration
-service spamassassin stop > /dev/null 2>&1
+systemctl stop spamassassin > /dev/null 2>&1
 cp -r /etc/mail/spamassassin/* $vst_backups/spamassassin >/dev/null 2>&1
 
 # Backup Dovecot configuration
-service dovecot stop > /dev/null 2>&1
+systemctl stop dovecot > /dev/null 2>&1
 cp /etc/dovecot.conf $vst_backups/dovecot > /dev/null 2>&1
 cp -r /etc/dovecot/* $vst_backups/dovecot > /dev/null 2>&1
 
 # Backup MySQL/MariaDB configuration and data
-service mysql stop > /dev/null 2>&1
-service mysqld stop > /dev/null 2>&1
-service mariadb stop > /dev/null 2>&1
+systemctl stop mariadb > /dev/null 2>&1
 mv /var/lib/mysql $vst_backups/mysql/mysql_datadir >/dev/null 2>&1
 cp /etc/my.cnf $vst_backups/mysql > /dev/null 2>&1
 cp /etc/my.cnf.d $vst_backups/mysql > /dev/null 2>&1
 mv /root/.my.cnf  $vst_backups/mysql > /dev/null 2>&1
 
 # Backup MySQL/MariaDB configuration and data
-service postgresql stop > /dev/null 2>&1
+systemctl stop postgresql > /dev/null 2>&1
 mv /var/lib/pgsql/data $vst_backups/postgresql/  >/dev/null 2>&1
 
 # Backup Vesta
-service vesta stop > /dev/null 2>&1
+systemctl stop vesta > /dev/null 2>&1
 mv $VESTA/data/* $vst_backups/vesta > /dev/null 2>&1
 mv $VESTA/conf/* $vst_backups/vesta > /dev/null 2>&1
 
@@ -631,7 +621,7 @@ fi
 #----------------------------------------------------------#
 
 # Installing rpm packages
-yum install -y $software
+dnf -y install $software
 if [ $? -ne 0 ]; then
     if [ "$remi" = 'yes' ]; then
         yum -y --disablerepo=* \
@@ -650,7 +640,7 @@ check_result $? "yum install failed"
 #----------------------------------------------------------#
 
 # Restarting rsyslog
-service rsyslog restart > /dev/null 2>&1
+systemctl restart rsyslog > /dev/null 2>&1
 
 # Checking ipv6 on loopback interface
 check_lo_ipv6=$(/sbin/ip addr | grep 'inet6')
@@ -670,15 +660,14 @@ if [ -e '/etc/sysconfig/selinux' ]; then
 fi
 
 # Disabling iptables
-service iptables stop
-service firewalld stop >/dev/null 2>&1
+systemctl stop iptables
+systemctl stop firewalld >/dev/null 2>&1
 
-
-# Configuring NTP synchronization
-echo '#!/bin/sh' > /etc/cron.daily/ntpdate
-echo "$(which ntpdate) -s pool.ntp.org" >> /etc/cron.daily/ntpdate
-chmod 775 /etc/cron.daily/ntpdate
-ntpdate -s pool.ntp.org
+# Configuring NTP synchronization NEED TO REPLACE WITH chrony
+#echo '#!/bin/sh' > /etc/cron.daily/ntpdate
+#echo "$(which ntpdate) -s pool.ntp.org" >> /etc/cron.daily/ntpdate
+#chmod 775 /etc/cron.daily/ntpdate
+#ntpdate -s pool.ntp.org
 
 # Disabling webalizer routine
 rm -f /etc/cron.daily/00webalizer
@@ -696,13 +685,9 @@ echo "/sbin/nologin" >> /etc/shells
 echo "/usr/sbin/nologin" >> /etc/shells
 
 # Changing default systemd interval
-if [ "$release" -eq '7' ]; then
-    # Hi Lennart
-    echo "DefaultStartLimitInterval=1s" >> /etc/systemd/system.conf
-    echo "DefaultStartLimitBurst=60" >> /etc/systemd/system.conf
-    systemctl daemon-reexec
-fi
-
+echo "DefaultStartLimitInterval=1s" >> /etc/systemd/system.conf
+echo "DefaultStartLimitBurst=60" >> /etc/systemd/system.conf
+systemctl daemon-reexec
 
 #----------------------------------------------------------#
 #                     Configure VESTA                      #
@@ -875,21 +860,19 @@ if [ "$nginx" = 'yes' ]; then
     cp -f $vestacp/logrotate/nginx /etc/logrotate.d/
     echo > /etc/nginx/conf.d/vesta.conf
     mkdir -p /var/log/nginx/domains
-    if [ "$release" -ge 7 ]; then
-        mkdir -p /etc/systemd/system/nginx.service.d
-        cd /etc/systemd/system/nginx.service.d
-        echo "[Service]" > limits.conf
-        echo "LimitNOFILE=500000" >> limits.conf
-    fi
-    chkconfig nginx on
-    service nginx start
+    mkdir -p /etc/systemd/system/nginx.service.d
+    cd /etc/systemd/system/nginx.service.d
+    echo "[Service]" > limits.conf
+    echo "LimitNOFILE=500000" >> limits.conf
+
+    systemctl enable nginx
+    systemctl start nginx
+    systemctl -q is-active nginx
     check_result $? "nginx start failed"
 
     # Workaround for OpenVZ/Virtuozzo
-    if [ "$release" -ge '7' ] && [ -e "/proc/vz/veinfo" ]; then
-        echo "#Vesta: workraround for networkmanager" >> /etc/rc.local
-        echo "sleep 3 && service nginx restart" >> /etc/rc.local
-    fi
+    echo "#Vesta: workraround for networkmanager" >> /etc/rc.local
+    echo "sleep 3 && service nginx restart" >> /etc/rc.local
 fi
 
 
@@ -903,11 +886,6 @@ if [ "$apache" = 'yes'  ]; then
     cp -f $vestacp/httpd/ssl.conf /etc/httpd/conf.d/
     cp -f $vestacp/httpd/ruid2.conf /etc/httpd/conf.d/
     cp -f $vestacp/logrotate/httpd /etc/logrotate.d/
-    if [ $release -lt 7 ]; then
-        cd /etc/httpd/conf.d
-        echo "MEFaccept 127.0.0.1" >> mod_extract_forwarded.conf
-        echo > proxy_ajp.conf
-    fi
     if [ -e "/etc/httpd/conf.modules.d/00-dav.conf" ]; then
         cd /etc/httpd/conf.modules.d
         sed -i "s/^/#/" 00-dav.conf 00-lua.conf 00-proxy.conf
@@ -920,18 +898,18 @@ if [ "$apache" = 'yes'  ]; then
     chmod a+x /var/log/httpd
     mkdir -p /var/log/httpd/domains
     chmod 751 /var/log/httpd/domains
-    if [ "$release" -ge 7 ]; then
-        mkdir -p /etc/systemd/system/httpd.service.d
-        cd /etc/systemd/system/httpd.service.d
-        echo "[Service]" > limits.conf
-        echo "LimitNOFILE=500000" >> limits.conf
-    fi
-    chkconfig httpd on
-    service httpd start
+    mkdir -p /etc/systemd/system/httpd.service.d
+    cd /etc/systemd/system/httpd.service.d
+    echo "[Service]" > limits.conf
+    echo "LimitNOFILE=500000" >> limits.conf
+
+    systemctl enable httpd
+    systemctl start httpd
+    systemctl -q is-active httpd
     check_result $? "httpd start failed"
 
     # Workaround for OpenVZ/Virtuozzo
-    if [ "$release" -ge '7' ] && [ -e "/proc/vz/veinfo" ]; then
+    if [ -e "/proc/vz/veinfo" ]; then
         echo "#Vesta: workraround for networkmanager" >> /etc/rc.local
         echo "sleep 2 && service httpd restart" >> /etc/rc.local
     fi
@@ -944,8 +922,10 @@ fi
 
 if [ "$phpfpm" = 'yes' ]; then
     cp -f $vestacp/php-fpm/www.conf /etc/php-fpm.d/
-    chkconfig php-fpm on
-    service php-fpm start
+    
+    systemctl enable php-fpm
+    systemctl start php-fpm
+    systemctl -q is-active php-fpm
     check_result $? "php-fpm start failed"
 fi
 
@@ -973,8 +953,10 @@ done
 
 if [ "$vsftpd" = 'yes' ]; then
     cp -f $vestacp/vsftpd/vsftpd.conf /etc/vsftpd/
-    chkconfig vsftpd on
-    service vsftpd start
+
+    systemctl enable vsftpd
+    systemctl start vsftpd
+    systemctl -q is-active vsftpd
     check_result $? "vsftpd start failed"
 fi
 
@@ -985,8 +967,10 @@ fi
 
 if [ "$proftpd" = 'yes' ]; then
     cp -f $vestacp/proftpd/proftpd.conf /etc/
-    chkconfig proftpd on
-    service proftpd start
+
+    systemctl enable proftpd
+    systemctl start proftpd
+    systemctl -q is-active proftpd
     check_result $? "proftpd start failed"
 fi
 
@@ -1009,22 +993,22 @@ if [ "$mysql" = 'yes' ]; then
     chown mysql:mysql /var/lib/mysql
     mkdir -p /etc/my.cnf.d
 
-    if [ $release -lt 7 ]; then
-        service='mysqld'
-    else
-        service='mariadb'
-    fi
+    service='mariadb'
+    
+    cp -f $vestacp/mariadb/$mycnf /etc/my.cnf
 
-    cp -f $vestacp/$service/$mycnf /etc/my.cnf
-    chkconfig $service on
-    service $service start
+    systemctl enable mariadb
+    systemctl start mariadb
+    systemctl -q is-active mariadb
+    
     if [ "$?" -ne 0 ]; then
         if [ -e "/proc/user_beancounters" ]; then
             # Fix for aio on OpenVZ
             sed -i "s/#innodb_use_native/innodb_use_native/g" /etc/my.cnf
         fi
-        service $service start
-        check_result $? "$service start failed"
+        systemctl start mariadb
+        systemctl -q is-active mariadb
+        check_result $? "mariadb start failed"
     fi
 
     # Securing MySQL installation
@@ -1088,8 +1072,10 @@ if [ "$named" = 'yes' ]; then
     cp -f $vestacp/named/named.conf /etc/
     chown root:named /etc/named.conf
     chmod 640 /etc/named.conf
-    chkconfig named on
-    service named start
+
+    systemctl enable named
+    systemctl start named
+    systemctl -q is-active named
     check_result $? "named start failed"
 fi
 
@@ -1118,13 +1104,14 @@ if [ "$exim" = 'yes' ]; then
 
     rm -f /etc/alternatives/mta
     ln -s /usr/sbin/sendmail.exim /etc/alternatives/mta
-    chkconfig sendmail off 2>/dev/null
-    service sendmail stop 2>/dev/null
-    chkconfig postfix off 2>/dev/null
-    service postfix stop 2>/dev/null
-
-    chkconfig exim on
-    service exim start
+    systemctl disable sendmail 2>/dev/null
+    systemctl stop sendmail 2>/dev/null
+    systemctl disable postfix 2>/dev/null
+    systemctl stop postfix 2>/dev/null
+    
+    systemctl enable exim
+    systemctl start exim
+    systemctl -q is-active exim
     check_result $? "exim start failed"
 fi
 
@@ -1138,11 +1125,11 @@ if [ "$dovecot" = 'yes' ]; then
     cp -rf $vestacp/dovecot /etc/
     cp -f $vestacp/logrotate/dovecot /etc/logrotate.d/
     chown -R root:root /etc/dovecot*
-    if [ "$release" -eq 7 ]; then
-        sed -i "s#namespace inbox {#namespace inbox {\n  inbox = yes#" /etc/dovecot/conf.d/15-mailboxes.conf
-    fi
-    chkconfig dovecot on
-    service dovecot start
+    sed -i "s#namespace inbox {#namespace inbox {\n  inbox = yes#" /etc/dovecot/conf.d/15-mailboxes.conf
+    
+    systemctl enable dovecot
+    systemctl start dovecot
+    systemctl -q is-active dovecot
     check_result $? "dovecot start failed"
 fi
 
@@ -1160,17 +1147,15 @@ if [ "$clamd" = 'yes' ]; then
     mkdir -p /var/log/clamav /var/run/clamav
     chown clam:clam /var/log/clamav /var/run/clamav
     chown -R clam:clam /var/lib/clamav
-    if [ "$release" -ge '7' ]; then
-        cp -f $vestacp/clamav/clamd.service /usr/lib/systemd/system/
-        systemctl --system daemon-reload
-    fi
+    cp -f $vestacp/clamav/clamd.service /usr/lib/systemd/system/
+    systemctl --system daemon-reload
     /usr/bin/freshclam
-    if [ "$release" -ge '7' ]; then
-        sed -i "s/nofork/foreground/" /usr/lib/systemd/system/clamd.service
-        systemctl daemon-reload
-    fi
-    chkconfig clamd on
-    service clamd start
+    sed -i "s/nofork/foreground/" /usr/lib/systemd/system/clamd.service
+    systemctl daemon-reload
+
+    systemctl enable clamd
+    systemctl start clamd
+    #systemctl -q is-active clamd
     #check_result $? "clamd start failed"
 fi
 
@@ -1180,8 +1165,9 @@ fi
 #----------------------------------------------------------#
 
 if [ "$spamd" = 'yes' ]; then
-    chkconfig spamassassin on
-    service spamassassin start
+    systemctl enable spamassassin
+    systemctl start spamassassin
+    systemctl -q is-active spamassassin
     check_result $? "spamassassin start failed"
     if [ "$release" -ge '7' ]; then
         groupadd -g 1001 spamd
@@ -1248,7 +1234,6 @@ if [ "$fail2ban" = 'yes' ]; then
         fline=$(echo "$fline" |grep enabled |tail -n1 |cut -f 1 -d -)
         sed -i "${fline}s/false/true/" /etc/fail2ban/jail.local
     fi
-    chkconfig fail2ban on
     mkdir -p /var/run/fail2ban
     if [ -e "/usr/lib/systemd/system/fail2ban.service" ]; then
         exec_pre='ExecStartPre=/bin/mkdir -p /var/run/fail2ban'
@@ -1256,7 +1241,10 @@ if [ "$fail2ban" = 'yes' ]; then
             /usr/lib/systemd/system/fail2ban.service
         systemctl daemon-reload
     fi
-    service fail2ban start
+
+    systemctl enable fail2ban
+    systemctl start fail2ban
+    systemctl -q is-active fail2ban
     check_result $? "fail2ban start failed"
 fi
 
@@ -1291,7 +1279,7 @@ ip=$(ip addr|grep 'inet '|grep global|head -n1|awk '{print $2}'|cut -f1 -d/)
 
 # Configuring firewall
 if [ "$iptables" = 'yes' ]; then
-    chkconfig firewalld off >/dev/null 2>&1
+    systemctl disable fail2ban >/dev/null 2>&1
     $VESTA/bin/v-update-firewall
 fi
 
@@ -1319,21 +1307,15 @@ fi
 $VESTA/bin/v-add-domain admin $servername
 
 # Adding cron jobs
-command="sudo $VESTA/bin/v-update-sys-queue disk"
-$VESTA/bin/v-add-cron-job 'admin' '15' '02' '*' '*' '*' "$command"
-command="sudo $VESTA/bin/v-update-sys-queue traffic"
-$VESTA/bin/v-add-cron-job 'admin' '10' '00' '*' '*' '*' "$command"
-command="sudo $VESTA/bin/v-update-sys-queue webstats"
-$VESTA/bin/v-add-cron-job 'admin' '30' '03' '*' '*' '*' "$command"
-command="sudo $VESTA/bin/v-update-sys-queue backup"
-$VESTA/bin/v-add-cron-job 'admin' '*/5' '*' '*' '*' '*' "$command"
-command="sudo $VESTA/bin/v-backup-users"
-$VESTA/bin/v-add-cron-job 'admin' '10' '05' '*' '*' '*' "$command"
-command="sudo $VESTA/bin/v-update-user-stats"
-$VESTA/bin/v-add-cron-job 'admin' '20' '00' '*' '*' '*' "$command"
-command="sudo $VESTA/bin/v-update-sys-rrd"
-$VESTA/bin/v-add-cron-job 'admin' '*/5' '*' '*' '*' '*' "$command"
-service crond restart
+$VESTA/bin/v-add-cron-job 'admin' '15' '02' '*' '*' '*' "sudo $VESTA/bin/v-update-sys-queue disk"
+$VESTA/bin/v-add-cron-job 'admin' '10' '00' '*' '*' '*' "sudo $VESTA/bin/v-update-sys-queue traffic"
+$VESTA/bin/v-add-cron-job 'admin' '30' '03' '*' '*' '*' "sudo $VESTA/bin/v-update-sys-queue webstats"
+$VESTA/bin/v-add-cron-job 'admin' '*/5' '*' '*' '*' '*' "sudo $VESTA/bin/v-update-sys-queue backup"
+$VESTA/bin/v-add-cron-job 'admin' '10' '05' '*' '*' '*' "sudo $VESTA/bin/v-backup-users"
+$VESTA/bin/v-add-cron-job 'admin' '20' '00' '*' '*' '*' "sudo $VESTA/bin/v-update-user-stats"
+$VESTA/bin/v-add-cron-job 'admin' '*/5' '*' '*' '*' '*' "sudo $VESTA/bin/v-update-sys-rrd"
+
+systemctl restart crond
 
 # Building RRD images
 $VESTA/bin/v-update-sys-rrd
@@ -1350,7 +1332,7 @@ fi
 
 # Starting Vesta service
 chkconfig vesta on
-service vesta start
+systemctl start vesta
 check_result $? "vesta start failed"
 chown admin:admin $VESTA/data/sessions
 
