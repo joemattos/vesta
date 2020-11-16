@@ -19,7 +19,9 @@ vestacp="$VESTA/install/$VERSION/7"
     ### New Installer Variables and Functions ###
     repoCMD="dnf"
     sysRelease="8"
-    pkgConflicts="exim mysql-server httpd nginx vesta"
+  
+    VestaCP_srcDIR="$VESTA/install/rhel/7"
+    VestaCP_pkgConflicts="exim mysql-server httpd nginx vesta"
     
     ### Must have Trailing Space
     packs="vesta vesta-ioncube vesta-nginx vesta-php vesta-softaculous "
@@ -263,7 +265,7 @@ check_result $? "No access to Vesta repository"
 # Checking installed packages
 tmpfile=$(mktemp -p /tmp)
 rpm -qa > $tmpfile
-for pkg in ${pkgConflicts}; do
+for pkg in ${VestaCP_pkgConflicts}; do
     if [ ! -z "$(grep $pkg $tmpfile)" ]; then
         conflicts="$pkg $conflicts"
     fi
