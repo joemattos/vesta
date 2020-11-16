@@ -467,7 +467,7 @@ fi
         rpm --import https://c.vestacp.com/GPG.txt
     
     ### Enable Repositories  MAYBE? nginx-mainline 
-    ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx vesta
+    ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx-stable vesta
   
     ### Fix php issue NEEDS REWORK
     ${repoCMD} -y module enable php:remi-7.3
