@@ -16,6 +16,10 @@ release=$(grep -o "[0-9]" /etc/redhat-release |head -n1)
 codename="${os}_$release"
 vestacp="$VESTA/install/$VERSION/7"
 
+### New Installer Variables and Functions ###
+repoCMD="dnf"
+
+
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
 # GeoIP is for webalizer
 software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
@@ -238,7 +242,7 @@ fi
 
 # Checking wget
 if [ ! -e '/usr/bin/wget' ]; then
-    dnf -q -y install wget
+    ${repoCMD} -y install wget
     check_result $? "Can't install wget"
 fi
 
@@ -432,45 +436,30 @@ fi
 #                   Install repository                     #
 #----------------------------------------------------------#
 
-# Updating system
-dnf -q -y upgrade
-check_result $? 'dnf update failed'
+    ### Installing Epel Repository
+    ${repoCMD} -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${sysVersion}.noarch.rpm
 
-# Installing EPEL repository
-dnf -q -y install epel-release 
-check_result $? "Can't install EPEL repository"
-
-# Installing Remi repository
-if [ "$remi" = 'yes' ] && [ ! -e "/etc/yum.repos.d/remi.repo" ]; then
-    rpm -Uvh http://rpms.remirepo.net/enterprise/remi-release-$release.rpm
-    check_result $? "Can't install REMI repository"
-fi
-
-# Installing Nginx repository
-nrepo="/etc/yum.repos.d/nginx.repo"
-echo "[nginx]" > $nrepo
-echo "name=nginx repo" >> $nrepo
-echo "baseurl=http://nginx.org/packages/centos/$release/\$basearch/" >> $nrepo
-echo "gpgcheck=0" >> $nrepo
-echo "enabled=1" >> $nrepo
-
-# Installing Vesta repository
-vrepo='/etc/yum.repos.d/vesta.repo'
-echo "[vesta]" > $vrepo
-echo "name=Vesta - $REPO" >> $vrepo
-echo "baseurl=http://$RHOST/$REPO/7/\$basearch/" >> $vrepo
-echo "enabled=1" >> $vrepo
-echo "gpgcheck=1" >> $vrepo
-echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-VESTA" >> $vrepo
+    ### Installing Remi Repository
+    ${repoCMD} -y install https://rpms.remirepo.net/enterprise/remi-release-${sysVersion}.rpm
     
-    ### Import VestaCP Repository Key
-    rpm --import https://c.vestacp.com/GPG.txt
+    ### Installing Nginx repository 
+    ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/nginx.repo
+
+    ### Installing VestaCP Repository
+    ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/vesta.repo
+    
+        ### Import VestaCP Repository Key
+        rpm --import https://c.vestacp.com/GPG.txt
     
     ### Enable Repositories  
-    dnf -q config-manager --set-enabled epel PowerTools vesta remi
+    ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx vesta
   
     ### Fix php issue NEEDS REWORK
-    dnf -q -y module enable php:remi-7.3
+    ${repoCMD} -y module enable php:remi-7.3
+    
+    # Updating system
+    ${repoCMD} -y upgrade
+    check_result $? "DNF update failed"
 
 
 #----------------------------------------------------------#
@@ -622,7 +611,7 @@ fi
 #----------------------------------------------------------#
 
 # Installing rpm packages
-dnf -y install $software
+${repoCMD} -y install $software
 if [ $? -ne 0 ]; then
     if [ "$remi" = 'yes' ]; then
         yum -y --disablerepo=* \
@@ -873,7 +862,7 @@ if [ "$nginx" = 'yes' ]; then
 
     # Workaround for OpenVZ/Virtuozzo
     echo "#Vesta: workraround for networkmanager" >> /etc/rc.local
-    echo "sleep 3 && service nginx restart" >> /etc/rc.local
+    echo "sleep 3 && systemctl restart nginx" >> /etc/rc.local
 fi
 
 
