@@ -18,7 +18,7 @@ vestacp="$VESTA/install/$VERSION/7"
 
 ### New Installer Variables and Functions ###
 repoCMD="dnf"
-pkgConflicts="sshd ssh exim mysql-server httpd nginx vesta"
+pkgConflicts="exim mysql-server httpd nginx vesta"
 
 
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
