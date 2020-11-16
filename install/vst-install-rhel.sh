@@ -451,7 +451,7 @@ fi
         ### Import VestaCP Repository Key
         rpm --import https://c.vestacp.com/GPG.txt
     
-    ### Enable Repositories  
+    ### Enable Repositories  MAYBE? nginx-mainline 
     ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx vesta
   
     ### Fix php issue NEEDS REWORK
