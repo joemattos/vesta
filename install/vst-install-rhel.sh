@@ -8,21 +8,24 @@ RHOST='r.vestacp.com'
 CHOST='c.vestacp.com'
 REPO='cmmnt'
 VERSION='rhel'
-VESTA='/usr/local/vesta'
-memory=$(grep 'MemTotal' /proc/meminfo |tr ' ' '\n' |grep [0-9])
-arch=$(uname -i)
-os=$(cut -f 1 -d ' ' /etc/redhat-release)
-release=$(grep -o "[0-9]" /etc/redhat-release |head -n1)
-codename="${os}_$release"
-vestacp="$VESTA/install/$VERSION/7"
+VESTA='/usr/local/vesta' ### REMOVE BEFORE RELEASE
+memory=$(grep 'MemTotal' /proc/meminfo |tr ' ' '\n' |grep [0-9]) ### REMOVE BEFORE RELEASE
+arch=$(uname -i) ### REMOVE BEFORE RELEASE
+os=$(cut -f 1 -d ' ' /etc/redhat-release) ### REMOVE BEFORE RELEASE
+release=$(grep -o "[0-9]" /etc/redhat-release |head -n1) ### REMOVE BEFORE RELEASE
+codename="${os}_$release" ### REMOVE BEFORE RELEASE
+vestacp="$VESTA/install/$VERSION/7" ### REMOVE BEFORE RELEASE
 
     ### New Installer Variables and Functions ###
     repoCMD="dnf"
-    sysRelease="8"
-  
-    VestaCP_srcDIR="$VESTA/install/rhel/7"
-    VestaCP_pkgConflicts="exim mysql-server httpd nginx vesta"
+    pkgConflicts="exim mysql-server httpd nginx vesta"
     
+    sysRelease="$(rpm -E '%{rhel}')"
+    sysMemory="$(grep 'MemTotal' /proc/meminfo | tr ' ' '\n'  |grep [0-9])"
+    
+    VestaCP_DIR="/usr/local/vesta"
+    VestaCP_INSTALL_DIR="${VestaCP_DIR}/install/rhel/${sysRelease}"
+
     ### Must have Trailing Space
     packs="vesta vesta-ioncube vesta-nginx vesta-php vesta-softaculous "
     packs+="php php-bcmath php-cli php-common php-fpm php-gd php-imap php-mbstring php-mcrypt phpMyAdmin php-mysql php-pdo phpPgAdmin php-pgsql php-soap php-tidy php-xml php-xmlrpc "
@@ -265,7 +268,7 @@ check_result $? "No access to Vesta repository"
 # Checking installed packages
 tmpfile=$(mktemp -p /tmp)
 rpm -qa > $tmpfile
-for pkg in ${VestaCP_pkgConflicts}; do
+for pkg in ${pkgConflicts}; do
     if [ ! -z "$(grep $pkg $tmpfile)" ]; then
         conflicts="$pkg $conflicts"
     fi
