@@ -16,23 +16,30 @@ release=$(grep -o "[0-9]" /etc/redhat-release |head -n1) ### REMOVE BEFORE RELEA
 codename="${os}_$release" ### REMOVE BEFORE RELEASE
 vestacp="$VESTA/install/$VERSION/7" ### REMOVE BEFORE RELEASE
 
-    ### New Installer Variables and Functions ###
-    repoCMD="dnf"
-    pkgConflicts="exim mysql-server httpd nginx vesta"
+
+#----------------------------------------------------------#
+#   Variables - New Installer                              #
+#----------------------------------------------------------#
+
+    ### Repository Command - CentOS 8: dnf | Ubuntu/Debian: apt-get
+    repoCMD="dnf" ### CentOS
+    ####repoCMD="apt-get" ### Ubuntu/Debian
     
+    ### Check for Packages already installed that will conflict with installation.
+    pkgConflicts="exim mariadb-server httpd nginx vesta" ### CentOS   
+    ####pkgConflicts="exim4 mariadb-server apache2 nginx vesta" ### Ubuntu/Debian
+
     sysRelease="$(rpm -E '%{rhel}')"
-    sysMemory="$(grep 'MemTotal' /proc/meminfo | tr ' ' '\n'  |grep [0-9])"
+    sysMemory="$(grep 'MemTotal' /proc/meminfo | tr ' ' '\n' | grep [0-9])" ### No Arch
     
-    VestaCP_DIR="/usr/local/vesta"
-    VestaCP_INSTALL_DIR="${VestaCP_DIR}/install/rhel/${sysRelease}"
+    #VestaCP_DIR="/usr/local/vesta"
+    #VestaCP_INSTALL_DIR="${VestaCP_DIR}/install/rhel/${sysRelease}"
 
     ### Must have Trailing Space
-    packs="vesta vesta-ioncube vesta-nginx vesta-php vesta-softaculous "
-    packs+="php php-bcmath php-cli php-common php-fpm php-gd php-imap php-mbstring php-mcrypt phpMyAdmin php-mysql php-pdo phpPgAdmin php-pgsql php-soap php-tidy php-xml php-xmlrpc "
-    packs+="wget "
+    #packs="vesta vesta-ioncube vesta-nginx vesta-php vesta-softaculous "
+    #packs+="php php-bcmath php-cli php-common php-fpm php-gd php-imap php-mbstring php-mcrypt phpMyAdmin php-mysql php-pdo phpPgAdmin php-pgsql php-soap php-tidy php-xml php-xmlrpc "
+    #packs+="wget "   
     
-
-
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
 # GeoIP is for webalizer
 software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
@@ -46,7 +53,9 @@ software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
     spamassassin sqlite sudo tar telnet unzip vesta vesta-ioncube vesta-nginx
     vesta-php vesta-softaculous vim-common vsftpd which zip"
     
-  
+#----------------------------------------------------------#
+#   Functions - New Installer                              #
+#----------------------------------------------------------# 
 
 # Defining help function
 help() {
@@ -254,7 +263,9 @@ if [ ! -z "$(grep ^admin: /etc/passwd /etc/group)" ] && [ -z "$force" ]; then
     echo -e "Example: bash $0 --force\n"
     check_result 1 "User admin exists"
 fi
-
+#----------------------------------------------------------#
+#                       FIX BEFORE RELEASE                 #
+#----------------------------------------------------------#
 # Checking wget
 if [ ! -e '/usr/bin/wget' ]; then
     ${repoCMD} -y install wget
@@ -264,7 +275,9 @@ fi
 # Checking repository availability
 wget -q "https://c.vestacp.com/GPG.txt" -O /dev/null
 check_result $? "No access to Vesta repository"
-
+#----------------------------------------------------------#
+#                       FIX BEFORE RELEASE                 #
+#----------------------------------------------------------#
 # Checking installed packages
 tmpfile=$(mktemp -p /tmp)
 rpm -qa > $tmpfile
@@ -506,8 +519,12 @@ if [ "$iptables" = 'no' ] || [ "$fail2ban" = 'no' ]; then
     software=$(echo "$software" | sed -e 's/fail2ban//')
 fi
 
+echo ${software} > /root/software.txt
+
 #----------------------------------------------------------#
-#                 Configure Repositories                   #
+#   INSTALLATION START                                     #
+#----------------------------------------------------------#
+#   Configure Repositories - Works with CentOS 8           #
 #----------------------------------------------------------#
 
     ### Installing Epel Repository
@@ -522,24 +539,21 @@ fi
     ### Installing VestaCP Repository
     ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/vesta.repo
     
-        ### Import VestaCP Repository Key
-        #rpm --import https://c.vestacp.com/GPG.txt
-    
-    ### Enable Repositories  MAYBE? nginx-mainline 
-    ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx-stable vesta
-  
-    ### Fix php issue NEEDS REWORK
-    ${repoCMD} -y module enable php:remi-7.3
+        ### Enable Repositories  MAYBE? nginx-mainline 
+        ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx-stable vesta
+
+        ### Fix php issue NEEDS REWORK
+        ${repoCMD} -y module enable php:remi-7.3
+
+#----------------------------------------------------------#
+#   Update System & Install Packages                       #
+#----------------------------------------------------------#
     
     ### Updating System
     ${repoCMD} -y upgrade
     
         ### Check for Errors
         check_result $? "DNF update failed"
-
-#----------------------------------------------------------#
-#                     Install packages                     #
-#----------------------------------------------------------#
 
     ### Installing Packages
     ${repoCMD} -y install $software
@@ -551,29 +565,32 @@ fi
 #                     Configure system                     #
 #----------------------------------------------------------#
 
-# Restarting rsyslog
-systemctl restart rsyslog > /dev/null 2>&1
+    ### Restarting rsyslog
+    systemctl restart rsyslog > /dev/null 2>&1
 
-# Checking ipv6 on loopback interface
-check_lo_ipv6=$(/sbin/ip addr | grep 'inet6')
-check_rc_ipv6=$(grep 'scope global dev lo' /etc/rc.local)
-if [ ! -z "$check_lo_ipv6)" ] && [ -z "$check_rc_ipv6" ]; then
-    ip addr add ::2/128 scope global dev lo
-    echo "# Vesta: Workraround for openssl validation func" >> /etc/rc.local
-    echo "ip addr add ::2/128 scope global dev lo" >> /etc/rc.local
-    chmod a+x /etc/rc.local
-fi
+    ### Disabling iptables
+    systemctl stop iptables
+    systemctl stop firewalld >/dev/null 2>&1
 
-# Disabling SELinux
-if [ -e '/etc/sysconfig/selinux' ]; then
-    sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
-    sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
-    setenforce 0 2>/dev/null
-fi
+    ### Disabling SELinux
+    if [ -e '/etc/sysconfig/selinux' ]; then
+        sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+        sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+        setenforce 0 2>/dev/null
+    fi
 
-# Disabling iptables
-systemctl stop iptables
-systemctl stop firewalld >/dev/null 2>&1
+    ### Disabling webalizer routine ?????
+    [[ -e '/etc/cron.daily/00webalizer' ]] && rm -f /etc/cron.daily/00webalizer
+
+    ### Checking ipv6 on loopback interface
+    check_lo_ipv6=$(/sbin/ip addr | grep 'inet6')
+    check_rc_ipv6=$(grep 'scope global dev lo' /etc/rc.local)
+    if [ ! -z "$check_lo_ipv6)" ] && [ -z "$check_rc_ipv6" ]; then
+        ip addr add ::2/128 scope global dev lo
+        echo "# Vesta: Workraround for openssl validation func" >> /etc/rc.local
+        echo "ip addr add ::2/128 scope global dev lo" >> /etc/rc.local
+        chmod a+x /etc/rc.local
+    fi
 
 # Configuring NTP synchronization NEED TO REPLACE WITH chrony
 #echo '#!/bin/sh' > /etc/cron.daily/ntpdate
@@ -581,8 +598,6 @@ systemctl stop firewalld >/dev/null 2>&1
 #chmod 775 /etc/cron.daily/ntpdate
 #ntpdate -s pool.ntp.org
 
-# Disabling webalizer routine
-rm -f /etc/cron.daily/00webalizer
 
 # Adding backup user
 adduser backup 2>/dev/null
