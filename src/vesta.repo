@@ -3,4 +3,4 @@ name=Vesta CP
 baseurl=https://r.vestacp.com/cmmnt/7/$basearch/
 enabled=0
 gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-VESTA
+gpgkey=https://c.vestacp.com/GPG.txt
