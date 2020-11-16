@@ -882,11 +882,11 @@ fi
 #----------------------------------------------------------#
 
 if [ "$apache" = 'yes'  ]; then
-    cp -f $vestacp/httpd/httpd.conf /etc/httpd/conf/
-    cp -f $vestacp/httpd/status.conf /etc/httpd/conf.d/
-    cp -f $vestacp/httpd/ssl.conf /etc/httpd/conf.d/
-    cp -f $vestacp/httpd/ruid2.conf /etc/httpd/conf.d/
-    cp -f $vestacp/logrotate/httpd /etc/logrotate.d/
+    cp -rf $vestacp/httpd/httpd.conf /etc/httpd/conf/
+    cp -rf $vestacp/httpd/status.conf /etc/httpd/conf.d/
+    cp -rf $vestacp/httpd/ssl.conf /etc/httpd/conf.d/
+    cp -rf $vestacp/httpd/ruid2.conf /etc/httpd/conf.d/
+    cp -rf $vestacp/logrotate/httpd /etc/logrotate.d/
     if [ -e "/etc/httpd/conf.modules.d/00-dav.conf" ]; then
         cd /etc/httpd/conf.modules.d
         sed -i "s/^/#/" 00-dav.conf 00-lua.conf 00-proxy.conf
