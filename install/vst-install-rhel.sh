@@ -1159,13 +1159,11 @@ if [ "$spamd" = 'yes' ]; then
     systemctl start spamassassin
     systemctl -q is-active spamassassin
     check_result $? "spamassassin start failed"
-    if [ "$release" -ge '7' ]; then
         groupadd -g 1001 spamd
         useradd -u 1001 -g spamd -s /sbin/nologin -d \
             /var/lib/spamassassin spamd
         mkdir /var/lib/spamassassin
         chown spamd:spamd /var/lib/spamassassin
-    fi
 fi
 
 
@@ -1175,12 +1173,12 @@ fi
 
 if [ "$exim" = 'yes' ] && [ "$mysql" = 'yes' ]; then
     if [ "$apache" = 'yes' ]; then
-        cp -f $vestacp/roundcube/roundcubemail.conf /etc/httpd/conf.d/
+        cp -rf $vestacp/roundcube/roundcubemail.conf /etc/httpd/conf.d/
     fi
-    cp -f $vestacp/roundcube/main.inc.php /etc/roundcubemail/config.inc.php
+    cp -rf $vestacp/roundcube/main.inc.php /etc/roundcubemail/config.inc.php
     cd /usr/share/roundcubemail/plugins/password
-    cp -f $vestacp/roundcube/vesta.php drivers/vesta.php
-    cp -f $vestacp/roundcube/config.inc.php config.inc.php
+    cp -rf $vestacp/roundcube/vesta.php drivers/vesta.php
+    cp -rf $vestacp/roundcube/config.inc.php config.inc.php
     sed -i "s/localhost/$servername/g" config.inc.php
     chmod a+r /etc/roundcubemail/*
     chmod -f 777 /var/log/roundcubemail
