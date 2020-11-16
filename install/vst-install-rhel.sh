@@ -16,7 +16,7 @@ release=$(grep -o "[0-9]" /etc/redhat-release |head -n1)
 codename="${os}_$release"
 vestacp="$VESTA/install/$VERSION/$release"
 
-# Defining software pack for all distros NEEDS FIXING jwhois ntp
+# Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
 # GeoIP is for webalizer
 software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
     curl dovecot e2fsprogs exim expect fail2ban flex freetype ftp GeoIP httpd
@@ -27,7 +27,7 @@ software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
     php-tidy php-xml php-xmlrpc postgresql postgresql-contrib
     postgresql-server proftpd roundcubemail rrdtool rsyslog screen
     spamassassin sqlite sudo tar telnet unzip vesta vesta-ioncube vesta-nginx
-    vesta-php vesta-softaculous vim-common vsftpd webalizer which zip"
+    vesta-php vesta-softaculous vim-common vsftpd which zip"
 
 # Defining help function
 help() {
