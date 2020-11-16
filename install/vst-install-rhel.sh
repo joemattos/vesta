@@ -29,7 +29,7 @@ vestacp="$VESTA/install/$VERSION/7" ### REMOVE BEFORE RELEASE
     ### Must have Trailing Space
     packs="vesta vesta-ioncube vesta-nginx vesta-php vesta-softaculous "
     packs+="php php-bcmath php-cli php-common php-fpm php-gd php-imap php-mbstring php-mcrypt phpMyAdmin php-mysql php-pdo phpPgAdmin php-pgsql php-soap php-tidy php-xml php-xmlrpc "
-    packs+="3 "
+    packs+="wget "
     
 
 
@@ -200,10 +200,10 @@ done
 
 # Defining default software stack
 set_default_value 'nginx' 'yes'
-set_default_value 'apache' 'yes'
+set_default_value 'apache' 'no'
 set_default_value 'phpfpm' 'no'
-set_default_value 'vsftpd' 'yes'
-set_default_value 'proftpd' 'no'
+set_default_value 'vsftpd' 'no'
+set_default_value 'proftpd' 'yes'
 set_default_value 'named' 'yes'
 set_default_value 'mysql' 'yes'
 set_default_value 'postgresql' 'no'
@@ -220,7 +220,7 @@ fi
 set_default_value 'iptables' 'yes'
 set_default_value 'fail2ban' 'yes'
 set_default_value 'remi' 'yes'
-set_default_value 'softaculous' 'yes'
+set_default_value 'softaculous' 'no'
 set_default_value 'quota' 'no'
 set_default_value 'interactive' 'yes'
 set_default_lang 'en'
@@ -258,11 +258,11 @@ fi
 # Checking wget
 if [ ! -e '/usr/bin/wget' ]; then
     ${repoCMD} -y install wget
-    check_result $? "Can't install wget"
+        check_result $? "Can't install wget"
 fi
 
 # Checking repository availability
-wget -q "c.vestacp.com/GPG.txt" -O /dev/null
+wget -q "https://c.vestacp.com/GPG.txt" -O /dev/null
 check_result $? "No access to Vesta repository"
 
 # Checking installed packages
@@ -429,130 +429,13 @@ vst_backups="/root/vst_install_backups/$(date +%s)"
 echo "Installation backup directory: $vst_backups"
 
 # Printing start message and sleeping for 5 seconds
-echo -e "\n\n\n\nInstallation will take about 15 minutes ...\n"
+echo -e "\n\nInstallation will take about 15 minutes ...\n"
 sleep 5
-
-
-#----------------------------------------------------------#
-#                      Checking swap                       #
-#----------------------------------------------------------#
-
-# Checking swap on small instances
-if [ -z "$(swapon -s)" ] && [ $memory -lt 1000000 ]; then
-    fallocate -l 1G /swapfile
-    chmod 600 /swapfile
-    mkswap /swapfile
-    swapon /swapfile
-    echo "/swapfile   none    swap    sw    0   0" >> /etc/fstab
-fi
-
-
-#----------------------------------------------------------#
-#                   Install repository                     #
-#----------------------------------------------------------#
-
-    ### Installing Epel Repository
-    ${repoCMD} -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${sysRelease}.noarch.rpm
-
-    ### Installing Remi Repository
-    ${repoCMD} -y install https://rpms.remirepo.net/enterprise/remi-release-${sysRelease}.rpm
-    
-    ### Installing Nginx repository 
-    ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/nginx.repo
-
-    ### Installing VestaCP Repository
-    ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/vesta.repo
-    
-        ### Import VestaCP Repository Key
-        rpm --import https://c.vestacp.com/GPG.txt
-    
-    ### Enable Repositories  MAYBE? nginx-mainline 
-    ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx-stable vesta
-  
-    ### Fix php issue NEEDS REWORK
-    ${repoCMD} -y module enable php:remi-7.3
-    
-    ### Updating System
-    ${repoCMD} -y upgrade
-        check_result $? "DNF update failed"
-
 
 #----------------------------------------------------------#
 #                         Backup                           #
 #----------------------------------------------------------#
-
-if $backUP; then
-
-    # Creating backup directory tree
-    mkdir -p $vst_backups
-    cd $vst_backups
-    mkdir nginx httpd php php-fpm vsftpd proftpd named exim dovecot clamd \
-        spamassassin mysql postgresql mongodb vesta
-
-    # Backup Nginx configuration
-    systemctl stop nginx > /dev/null 2>&1
-    cp -r /etc/nginx/* $vst_backups/nginx > /dev/null 2>&1
-
-    # Backup Apache configuration
-    systemctl stop httpd > /dev/null 2>&1
-    cp -r /etc/httpd/* $vst_backups/httpd > /dev/null 2>&1
-
-    # Backup PHP-FPM configuration
-    systemctl stop php-fpm >/dev/null 2>&1
-    cp /etc/php.ini $vst_backups/php > /dev/null 2>&1
-    cp -r /etc/php.d  $vst_backups/php > /dev/null 2>&1
-    cp /etc/php-fpm.conf $vst_backups/php-fpm > /dev/null 2>&1
-    mv -f /etc/php-fpm.d/* $vst_backups/php-fpm/ > /dev/null 2>&1
-
-    # Backup Bind configuration
-    yum remove bind-chroot > /dev/null 2>&1
-    systemctl stop named > /dev/null 2>&1
-    cp /etc/named.conf $vst_backups/named >/dev/null 2>&1
-
-    # Backup Vsftpd configuration
-    systemctl stop vsftpd > /dev/null 2>&1
-    cp /etc/vsftpd/vsftpd.conf $vst_backups/vsftpd >/dev/null 2>&1
-
-    # Backup ProFTPD configuration
-    systemctl stop proftpd > /dev/null 2>&1
-    cp /etc/proftpd.conf $vst_backups/proftpd >/dev/null 2>&1
-
-    # Backup Exim configuration
-    systemctl stop exim > /dev/null 2>&1
-    cp -r /etc/exim/* $vst_backups/exim >/dev/null 2>&1
-
-    # Backup ClamAV configuration
-    systemctl stop clamd > /dev/null 2>&1
-    cp /etc/clamd.conf $vst_backups/clamd >/dev/null 2>&1
-    cp -r /etc/clamd.d $vst_backups/clamd >/dev/null 2>&1
-
-    # Backup SpamAssassin configuration
-    systemctl stop spamassassin > /dev/null 2>&1
-    cp -r /etc/mail/spamassassin/* $vst_backups/spamassassin >/dev/null 2>&1
-
-    # Backup Dovecot configuration
-    systemctl stop dovecot > /dev/null 2>&1
-    cp /etc/dovecot.conf $vst_backups/dovecot > /dev/null 2>&1
-    cp -r /etc/dovecot/* $vst_backups/dovecot > /dev/null 2>&1
-
-    # Backup MySQL/MariaDB configuration and data
-    systemctl stop mariadb > /dev/null 2>&1
-    mv /var/lib/mysql $vst_backups/mysql/mysql_datadir >/dev/null 2>&1
-    cp /etc/my.cnf $vst_backups/mysql > /dev/null 2>&1
-    cp /etc/my.cnf.d $vst_backups/mysql > /dev/null 2>&1
-    mv /root/.my.cnf  $vst_backups/mysql > /dev/null 2>&1
-
-    # Backup MySQL/MariaDB configuration and data
-    systemctl stop postgresql > /dev/null 2>&1
-    mv /var/lib/pgsql/data $vst_backups/postgresql/  >/dev/null 2>&1
-
-    # Backup Vesta
-    systemctl stop vesta > /dev/null 2>&1
-    mv $VESTA/data/* $vst_backups/vesta > /dev/null 2>&1
-    mv $VESTA/conf/* $vst_backups/vesta > /dev/null 2>&1
-    
-fi
-
+#                  REPLACE BEFORE RELEASE                  #
 #----------------------------------------------------------#
 #                     Package Excludes                     #
 #----------------------------------------------------------#
@@ -623,15 +506,46 @@ if [ "$iptables" = 'no' ] || [ "$fail2ban" = 'no' ]; then
     software=$(echo "$software" | sed -e 's/fail2ban//')
 fi
 
+#----------------------------------------------------------#
+#                 Configure Repositories                   #
+#----------------------------------------------------------#
+
+    ### Installing Epel Repository
+    ${repoCMD} -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${sysRelease}.noarch.rpm
+
+    ### Installing Remi Repository
+    ${repoCMD} -y install https://rpms.remirepo.net/enterprise/remi-release-${sysRelease}.rpm
+    
+    ### Installing Nginx repository 
+    ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/nginx.repo
+
+    ### Installing VestaCP Repository
+    ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/vesta.repo
+    
+        ### Import VestaCP Repository Key
+        #rpm --import https://c.vestacp.com/GPG.txt
+    
+    ### Enable Repositories  MAYBE? nginx-mainline 
+    ${repoCMD} config-manager --set-enabled epel PowerTools remi nginx-stable vesta
+  
+    ### Fix php issue NEEDS REWORK
+    ${repoCMD} -y module enable php:remi-7.3
+    
+    ### Updating System
+    ${repoCMD} -y upgrade
+    
+        ### Check for Errors
+        check_result $? "DNF update failed"
 
 #----------------------------------------------------------#
 #                     Install packages                     #
 #----------------------------------------------------------#
 
-    # Installing rpm packages
+    ### Installing Packages
     ${repoCMD} -y install $software
+    
+        ### Check for Errors
         check_result $? "DNF Install Failed"
-
 
 #----------------------------------------------------------#
 #                     Configure system                     #
@@ -686,6 +600,15 @@ echo "/usr/sbin/nologin" >> /etc/shells
 echo "DefaultStartLimitInterval=1s" >> /etc/systemd/system.conf
 echo "DefaultStartLimitBurst=60" >> /etc/systemd/system.conf
 systemctl daemon-reexec
+
+# Checking swap on small instances
+if [ -z "$(swapon -s)" ] && [ $memory -lt 1000000 ]; then
+    fallocate -l 1G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo "/swapfile   none    swap    sw    0   0" >> /etc/fstab
+fi
 
 #----------------------------------------------------------#
 #                     Configure VESTA                      #
@@ -876,6 +799,8 @@ fi
 
 #----------------------------------------------------------#
 #                    Configure Apache                      #
+#----------------------------------------------------------#
+#                    FIX BEFORE RELEASE                    #
 #----------------------------------------------------------#
 
 if [ "$apache" = 'yes'  ]; then
