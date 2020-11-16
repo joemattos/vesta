@@ -16,9 +16,16 @@ release=$(grep -o "[0-9]" /etc/redhat-release |head -n1)
 codename="${os}_$release"
 vestacp="$VESTA/install/$VERSION/7"
 
-### New Installer Variables and Functions ###
-repoCMD="dnf"
-pkgConflicts="exim mysql-server httpd nginx vesta"
+    ### New Installer Variables and Functions ###
+    repoCMD="dnf"
+    sysRelease="8"
+    pkgConflicts="exim mysql-server httpd nginx vesta"
+    
+    ### Must have Trailing Space
+    packs="vesta vesta-ioncube vesta-nginx vesta-php vesta-softaculous "
+    packs+="php php-bcmath php-cli php-common php-fpm php-gd php-imap php-mbstring php-mcrypt phpMyAdmin php-mysql php-pdo phpPgAdmin php-pgsql php-soap php-tidy php-xml php-xmlrpc "
+    packs+="3 "
+    
 
 
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
@@ -33,6 +40,8 @@ software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
     postgresql-server proftpd roundcubemail rrdtool rsyslog screen
     spamassassin sqlite sudo tar telnet unzip vesta vesta-ioncube vesta-nginx
     vesta-php vesta-softaculous vim-common vsftpd which zip"
+    
+  
 
 # Defining help function
 help() {
@@ -438,10 +447,10 @@ fi
 #----------------------------------------------------------#
 
     ### Installing Epel Repository
-    ${repoCMD} -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${sysVersion}.noarch.rpm
+    ${repoCMD} -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${sysRelease}.noarch.rpm
 
     ### Installing Remi Repository
-    ${repoCMD} -y install https://rpms.remirepo.net/enterprise/remi-release-${sysVersion}.rpm
+    ${repoCMD} -y install https://rpms.remirepo.net/enterprise/remi-release-${sysRelease}.rpm
     
     ### Installing Nginx repository 
     ${repoCMD} config-manager --add-repo https://raw.githubusercontent.com/joemattos/vesta/joemattos-new-tools/src/nginx.repo
@@ -467,74 +476,77 @@ fi
 #                         Backup                           #
 #----------------------------------------------------------#
 
-# Creating backup directory tree
-mkdir -p $vst_backups
-cd $vst_backups
-mkdir nginx httpd php php-fpm vsftpd proftpd named exim dovecot clamd \
-    spamassassin mysql postgresql mongodb vesta
+if $backUP; then
 
-# Backup Nginx configuration
-systemctl stop nginx > /dev/null 2>&1
-cp -r /etc/nginx/* $vst_backups/nginx > /dev/null 2>&1
+    # Creating backup directory tree
+    mkdir -p $vst_backups
+    cd $vst_backups
+    mkdir nginx httpd php php-fpm vsftpd proftpd named exim dovecot clamd \
+        spamassassin mysql postgresql mongodb vesta
 
-# Backup Apache configuration
-systemctl stop httpd > /dev/null 2>&1
-cp -r /etc/httpd/* $vst_backups/httpd > /dev/null 2>&1
+    # Backup Nginx configuration
+    systemctl stop nginx > /dev/null 2>&1
+    cp -r /etc/nginx/* $vst_backups/nginx > /dev/null 2>&1
 
-# Backup PHP-FPM configuration
-systemctl stop php-fpm >/dev/null 2>&1
-cp /etc/php.ini $vst_backups/php > /dev/null 2>&1
-cp -r /etc/php.d  $vst_backups/php > /dev/null 2>&1
-cp /etc/php-fpm.conf $vst_backups/php-fpm > /dev/null 2>&1
-mv -f /etc/php-fpm.d/* $vst_backups/php-fpm/ > /dev/null 2>&1
+    # Backup Apache configuration
+    systemctl stop httpd > /dev/null 2>&1
+    cp -r /etc/httpd/* $vst_backups/httpd > /dev/null 2>&1
 
-# Backup Bind configuration
-yum remove bind-chroot > /dev/null 2>&1
-systemctl stop named > /dev/null 2>&1
-cp /etc/named.conf $vst_backups/named >/dev/null 2>&1
+    # Backup PHP-FPM configuration
+    systemctl stop php-fpm >/dev/null 2>&1
+    cp /etc/php.ini $vst_backups/php > /dev/null 2>&1
+    cp -r /etc/php.d  $vst_backups/php > /dev/null 2>&1
+    cp /etc/php-fpm.conf $vst_backups/php-fpm > /dev/null 2>&1
+    mv -f /etc/php-fpm.d/* $vst_backups/php-fpm/ > /dev/null 2>&1
 
-# Backup Vsftpd configuration
-systemctl stop vsftpd > /dev/null 2>&1
-cp /etc/vsftpd/vsftpd.conf $vst_backups/vsftpd >/dev/null 2>&1
+    # Backup Bind configuration
+    yum remove bind-chroot > /dev/null 2>&1
+    systemctl stop named > /dev/null 2>&1
+    cp /etc/named.conf $vst_backups/named >/dev/null 2>&1
 
-# Backup ProFTPD configuration
-systemctl stop proftpd > /dev/null 2>&1
-cp /etc/proftpd.conf $vst_backups/proftpd >/dev/null 2>&1
+    # Backup Vsftpd configuration
+    systemctl stop vsftpd > /dev/null 2>&1
+    cp /etc/vsftpd/vsftpd.conf $vst_backups/vsftpd >/dev/null 2>&1
 
-# Backup Exim configuration
-systemctl stop exim > /dev/null 2>&1
-cp -r /etc/exim/* $vst_backups/exim >/dev/null 2>&1
+    # Backup ProFTPD configuration
+    systemctl stop proftpd > /dev/null 2>&1
+    cp /etc/proftpd.conf $vst_backups/proftpd >/dev/null 2>&1
 
-# Backup ClamAV configuration
-systemctl stop clamd > /dev/null 2>&1
-cp /etc/clamd.conf $vst_backups/clamd >/dev/null 2>&1
-cp -r /etc/clamd.d $vst_backups/clamd >/dev/null 2>&1
+    # Backup Exim configuration
+    systemctl stop exim > /dev/null 2>&1
+    cp -r /etc/exim/* $vst_backups/exim >/dev/null 2>&1
 
-# Backup SpamAssassin configuration
-systemctl stop spamassassin > /dev/null 2>&1
-cp -r /etc/mail/spamassassin/* $vst_backups/spamassassin >/dev/null 2>&1
+    # Backup ClamAV configuration
+    systemctl stop clamd > /dev/null 2>&1
+    cp /etc/clamd.conf $vst_backups/clamd >/dev/null 2>&1
+    cp -r /etc/clamd.d $vst_backups/clamd >/dev/null 2>&1
 
-# Backup Dovecot configuration
-systemctl stop dovecot > /dev/null 2>&1
-cp /etc/dovecot.conf $vst_backups/dovecot > /dev/null 2>&1
-cp -r /etc/dovecot/* $vst_backups/dovecot > /dev/null 2>&1
+    # Backup SpamAssassin configuration
+    systemctl stop spamassassin > /dev/null 2>&1
+    cp -r /etc/mail/spamassassin/* $vst_backups/spamassassin >/dev/null 2>&1
 
-# Backup MySQL/MariaDB configuration and data
-systemctl stop mariadb > /dev/null 2>&1
-mv /var/lib/mysql $vst_backups/mysql/mysql_datadir >/dev/null 2>&1
-cp /etc/my.cnf $vst_backups/mysql > /dev/null 2>&1
-cp /etc/my.cnf.d $vst_backups/mysql > /dev/null 2>&1
-mv /root/.my.cnf  $vst_backups/mysql > /dev/null 2>&1
+    # Backup Dovecot configuration
+    systemctl stop dovecot > /dev/null 2>&1
+    cp /etc/dovecot.conf $vst_backups/dovecot > /dev/null 2>&1
+    cp -r /etc/dovecot/* $vst_backups/dovecot > /dev/null 2>&1
 
-# Backup MySQL/MariaDB configuration and data
-systemctl stop postgresql > /dev/null 2>&1
-mv /var/lib/pgsql/data $vst_backups/postgresql/  >/dev/null 2>&1
+    # Backup MySQL/MariaDB configuration and data
+    systemctl stop mariadb > /dev/null 2>&1
+    mv /var/lib/mysql $vst_backups/mysql/mysql_datadir >/dev/null 2>&1
+    cp /etc/my.cnf $vst_backups/mysql > /dev/null 2>&1
+    cp /etc/my.cnf.d $vst_backups/mysql > /dev/null 2>&1
+    mv /root/.my.cnf  $vst_backups/mysql > /dev/null 2>&1
 
-# Backup Vesta
-systemctl stop vesta > /dev/null 2>&1
-mv $VESTA/data/* $vst_backups/vesta > /dev/null 2>&1
-mv $VESTA/conf/* $vst_backups/vesta > /dev/null 2>&1
+    # Backup MySQL/MariaDB configuration and data
+    systemctl stop postgresql > /dev/null 2>&1
+    mv /var/lib/pgsql/data $vst_backups/postgresql/  >/dev/null 2>&1
 
+    # Backup Vesta
+    systemctl stop vesta > /dev/null 2>&1
+    mv $VESTA/data/* $vst_backups/vesta > /dev/null 2>&1
+    mv $VESTA/conf/* $vst_backups/vesta > /dev/null 2>&1
+    
+fi
 
 #----------------------------------------------------------#
 #                     Package Excludes                     #
@@ -611,19 +623,9 @@ fi
 #                     Install packages                     #
 #----------------------------------------------------------#
 
-# Installing rpm packages
-${repoCMD} -y install $software
-if [ $? -ne 0 ]; then
-    if [ "$remi" = 'yes' ]; then
-        yum -y --disablerepo=* \
-            --enablerepo="*base,*updates,nginx,epel,vesta,remi*" \
-            install $software
-    else
-        yum -y --disablerepo=* --enablerepo="*base,*updates,nginx,epel,vesta" \
-            install $software
-    fi
-fi
-check_result $? "yum install failed"
+    # Installing rpm packages
+    ${repoCMD} -y install $software
+        check_result $? "DNF Install Failed"
 
 
 #----------------------------------------------------------#
