@@ -907,7 +907,7 @@ if [ "$apache" = 'yes'  ]; then
     systemctl enable httpd
     systemctl start httpd
     systemctl -q is-active httpd
-    check_result $? "httpd start failed"
+    #check_result $? "httpd start failed"
 
     # Workaround for OpenVZ/Virtuozzo
     if [ -e "/proc/vz/veinfo" ]; then
