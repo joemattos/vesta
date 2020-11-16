@@ -14,7 +14,7 @@ arch=$(uname -i)
 os=$(cut -f 1 -d ' ' /etc/redhat-release)
 release=$(grep -o "[0-9]" /etc/redhat-release |head -n1)
 codename="${os}_$release"
-vestacp="$VESTA/install/$VERSION/$release"
+vestacp="$VESTA/install/$VERSION/7"
 
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
 # GeoIP is for webalizer
