@@ -457,9 +457,9 @@ fi
     ### Fix php issue NEEDS REWORK
     ${repoCMD} -y module enable php:remi-7.3
     
-    # Updating system
+    ### Updating System
     ${repoCMD} -y upgrade
-    check_result $? "DNF update failed"
+        check_result $? "DNF update failed"
 
 
 #----------------------------------------------------------#
