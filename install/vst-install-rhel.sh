@@ -18,6 +18,7 @@ vestacp="$VESTA/install/$VERSION/7"
 
 ### New Installer Variables and Functions ###
 repoCMD="dnf"
+pkgConflicts="sshd ssh exim mysql-server httpd nginx vesta"
 
 
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
@@ -253,7 +254,7 @@ check_result $? "No access to Vesta repository"
 # Checking installed packages
 tmpfile=$(mktemp -p /tmp)
 rpm -qa > $tmpfile
-for pkg in exim mysql-server httpd nginx vesta; do
+for pkg in ${pkgConflicts}; do
     if [ ! -z "$(grep $pkg $tmpfile)" ]; then
         conflicts="$pkg $conflicts"
     fi
