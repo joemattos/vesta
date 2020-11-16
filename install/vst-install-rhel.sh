@@ -17,6 +17,7 @@ codename="${os}_$release"
 vestacp="$VESTA/install/$VERSION/$release"
 
 # Defining software pack for all distros NEEDS FIXING jwhois ntp
+# GeoIP is for webalizer
 software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
     curl dovecot e2fsprogs exim expect fail2ban flex freetype ftp GeoIP httpd
     ImageMagick iptables-services lsof mailx mariadb mariadb-server mc
