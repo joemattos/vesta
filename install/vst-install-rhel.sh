@@ -66,6 +66,8 @@ vestacp="$VESTA/install/$VERSION/7" ### REMOVE BEFORE RELEASE
     INSTALL_DIR="${SRC_DIR}/src/install/${sysOS}_${sysRelease}"
     
     
+echo -e "\n\n\ncurrentDate: $currentDate\ncurrentTime: $currentTime\n sysOS: $sysOS\nsysRelease: $sysRelease\nsysVersion: $sysVersion\nsysMemory: $sysMemory\nrepoCMD: $repoCMD\nrepoHost: $repoHost\nrepoFiles: $repoFiles\nrepoKey: $repoKey\nadminUser: $adminUser\nsshPort: $sshPort\nvestaPort: $vestaPort\npkgConflicts: $pkgConflicts\nSRC_DIR: $SRC_DIR\nBIN_DIR: $BIN_DIR\nWEB_DIR: $WEB_DIR\nDATA_DIR: $DATA_DIR\nCONF_DIR: $CONF_DIR\nINSTALL_DIR: $INSTALL_DIR"
+
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
 # GeoIP is for webalizer
 software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
@@ -157,7 +159,6 @@ gen_pass() {
 check_result() {
     if [ $1 -ne 0 ]; then
         echo "Error: $2"
-        echo -e "\n\n\ncurrentDate: $currentDate\ncurrentTime: $currentTime\n sysOS: $sysOS\nsysRelease: $sysRelease\nsysVersion: $sysVersion\nsysMemory: $sysMemory\nrepoCMD: $repoCMD\nrepoHost: $repoHost\nrepoFiles: $repoFiles\nrepoKey: $repoKey\nadminUser: $adminUser\nsshPort: $sshPort\nvestaPort: $vestaPort\npkgConflicts: $pkgConflicts\nSRC_DIR: $SRC_DIR\nBIN_DIR: $BIN_DIR\nWEB_DIR: $WEB_DIR\nDATA_DIR: $DATA_DIR\nCONF_DIR: $CONF_DIR\nINSTALL_DIR: $INSTALL_DIR"
         exit $1
     fi
 }
