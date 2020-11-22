@@ -157,6 +157,31 @@ gen_pass() {
 check_result() {
     if [ $1 -ne 0 ]; then
         echo "Error: $2"
+        echo"\
+  currentDate: $currentDate
+  currentTime: $currentTime
+   
+  sysOS: $sysOS
+  sysRelease: $sysRelease
+  sysVersion: $sysVersion
+  sysMemory: $sysMemory
+
+  repoCMD: $repoCMD
+  repoHost: $repoHost
+  repoFiles: $repoFiles
+  repoKey: $repoKey
+
+  adminUser: $adminUser
+  sshPort: $sshPort
+  vestaPort: $vestaPort
+  pkgConflicts: $pkgConflicts
+
+  SRC_DIR: $SRC_DIR
+  BIN_DIR: $BIN_DIR
+  WEB_DIR: $WEB_DIR
+  DATA_DIR: $DATA_DIR
+  CONF_DIR: $CONF_DIR
+  INSTALL_DIR: $INSTALL_DIR"
         exit $1
     fi
 }
