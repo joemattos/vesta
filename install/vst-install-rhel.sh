@@ -38,7 +38,34 @@ vestacp="$VESTA/install/$VERSION/7" ### REMOVE BEFORE RELEASE
     ### Must have Trailing Space
     #packs="vesta vesta-ioncube vesta-nginx vesta-php vesta-softaculous "
     #packs+="php php-bcmath php-cli php-common php-fpm php-gd php-imap php-mbstring php-mcrypt phpMyAdmin php-mysql php-pdo phpPgAdmin php-pgsql php-soap php-tidy php-xml php-xmlrpc "
-    #packs+="wget "   
+    #packs+="wget "  
+    
+  currentDate="$(date +%F)"
+  currentTime="$(date +%T)"
+   
+  sysOS="$(cut -f 1 -d ' ' /etc/redhat-release | tr '[:upper:]' '[:lower:]')"
+  sysRelease="$(grep -o "[0-9]" /etc/redhat-release | head -n1)"
+  sysVersion="rhel"
+  
+  sysMemory="$(grep 'MemTotal' /proc/meminfo | tr ' ' '\n' | grep [0-9])" ### No Arch
+
+  repoCMD="dnf" ### CentOS
+  repoHost="http://r.vestacp.com/cmmnt/${sysRelease}/" ### CentOS
+  repoFiles="http://c.vestacp.com/0.9.8" ### CentOS
+  repoKey="${repoFiles_Vesta}/${sysVersion}/${sysRelease}/GPG.txt" ### CentOS
+
+  adminUser="admin"
+  sshPort="22"
+  vestaPort="8083"
+  pkgConflicts="exim mariadb-server httpd nginx vesta" ### CentOS  
+
+  SRC_DIR="/usr/local/vesta"
+    BIN_DIR="${SRC_DIR}/bin"
+    WEB_DIR="${SRC_DIR}/web"
+    DATA_DIR="${SRC_DIR}/data"
+    CONF_DIR="${SRC_DIR}/conf"
+    INSTALL_DIR="${SRC_DIR}/src/install/${sysOS}_${sysRelease}"
+    
     
 # Defining software pack for all distros NEEDS FIXING jwhois ntp webalizer
 # GeoIP is for webalizer
@@ -52,6 +79,32 @@ software="nginx awstats bc bind bind-libs bind-utils clamav-server clamav-update
     postgresql-server proftpd roundcubemail rrdtool rsyslog screen
     spamassassin sqlite sudo tar telnet unzip vesta vesta-ioncube vesta-nginx
     vesta-php vesta-softaculous vim-common vsftpd which zip"
+    
+  #----------------------------------------------------------#
+  #   No Arch - Functions                                    #
+  #----------------------------------------------------------#
+    ### Create Admin Sudo User
+    ADD_SUDO() {
+      if [ -z "$(grep /etc/sudoers.d /etc/sudoers)" ]; then
+        echo -e "\n#includedir /etc/sudoers.d" >> /etc/sudoers
+      fi
+
+      if [ ! -d "/etc/sudoers.d" ]; then
+        mkdir /etc/sudoers.d
+        chmod 750 /etc/sudoers.d
+      fi
+
+      echo '### VestaCP - Admin Sudo User - No Arch 
+      Defaults env_keep="VESTA"
+      Defaults:admin !syslog
+      Defaults:admin !requiretty
+      Defaults:root !requiretty
+      ### Limit Sudo to VestaCP Script Bin
+      admin   ALL=NOPASSWD:/usr/local/vesta/bin/*' > /etc/sudoers.d/admin
+
+      chmod 440 /etc/sudoers.d/admin
+    } 
+    
     
 #----------------------------------------------------------#
 #   Functions - New Installer                              #
@@ -266,15 +319,15 @@ fi
 #----------------------------------------------------------#
 #                       FIX BEFORE RELEASE                 #
 #----------------------------------------------------------#
-# Checking wget
-if [ ! -e '/usr/bin/wget' ]; then
-    ${repoCMD} -y install wget
-        check_result $? "Can't install wget"
-fi
-
-# Checking repository availability
-wget -q "https://c.vestacp.com/GPG.txt" -O /dev/null
-check_result $? "No access to Vesta repository"
+    if [ -e '/usr/bin/wget' ]; then
+        wget -q "${repoKey}" -O /dev/null     
+    elif [ -e '/usr/bin/curl' ]; then
+        curl --fail -LI ${repoKey} -o /dev/null -w '%{http_code}\n' -s > /dev/null
+    else
+        check_result 1 "Missing Wget and Curl."
+    fi
+    
+    check_result $? "Unable to Access Repository. ${repoKey}"
 #----------------------------------------------------------#
 #                       FIX BEFORE RELEASE                 #
 #----------------------------------------------------------#
@@ -497,11 +550,11 @@ if [ "$dovecot" = 'no' ]; then
     software=$(echo "$software" | sed -e "s/dovecot//")
 fi
 if [ "$mysql" = 'no' ]; then
-    software=$(echo "$software" | sed -e 's/mysql //')
-    software=$(echo "$software" | sed -e 's/mysql-server//')
+    software=$(echo "$software" | sed -e 's/mysql //') ### REMOVE
+    software=$(echo "$software" | sed -e 's/mysql-server//') ### REMOVE
     software=$(echo "$software" | sed -e 's/mariadb //')
     software=$(echo "$software" | sed -e 's/mariadb-server//')
-    software=$(echo "$software" | sed -e 's/php-mysql//')
+    software=$(echo "$software" | sed -e 's/php-mysql//') ### RENAME php-mysqlnd
     software=$(echo "$software" | sed -e 's/phpMyAdmin//')
     software=$(echo "$software" | sed -e 's/roundcubemail//')
 fi
@@ -553,13 +606,13 @@ echo ${software} > /root/software.txt
     ${repoCMD} -y upgrade
     
         ### Check for Errors
-        check_result $? "DNF update failed"
+        check_result $? "Package Update Failed"
 
     ### Installing Packages
     ${repoCMD} -y install $software
     
         ### Check for Errors
-        check_result $? "DNF Install Failed"
+        check_result $? "Package Installation Failed"
 
 #----------------------------------------------------------#
 #                     Configure system                     #
@@ -630,9 +683,12 @@ fi
 #----------------------------------------------------------#
 
 # Installing sudo configuration
-mkdir -p /etc/sudoers.d
-cp -f $vestacp/sudo/admin /etc/sudoers.d/
-chmod 440 /etc/sudoers.d/admin
+#mkdir -p /etc/sudoers.d
+#cp -f $vestacp/sudo/admin /etc/sudoers.d/
+#chmod 440 /etc/sudoers.d/admin
+
+### Add Sudu Configuration
+ADD_SUDO
 
 # Configuring system env
 echo "export VESTA='$VESTA'" > /etc/profile.d/vesta.sh
