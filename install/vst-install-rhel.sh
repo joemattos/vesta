@@ -157,31 +157,7 @@ gen_pass() {
 check_result() {
     if [ $1 -ne 0 ]; then
         echo "Error: $2"
-        echo"\
-  currentDate: $currentDate
-  currentTime: $currentTime
-   
-  sysOS: $sysOS
-  sysRelease: $sysRelease
-  sysVersion: $sysVersion
-  sysMemory: $sysMemory
-
-  repoCMD: $repoCMD
-  repoHost: $repoHost
-  repoFiles: $repoFiles
-  repoKey: $repoKey
-
-  adminUser: $adminUser
-  sshPort: $sshPort
-  vestaPort: $vestaPort
-  pkgConflicts: $pkgConflicts
-
-  SRC_DIR: $SRC_DIR
-  BIN_DIR: $BIN_DIR
-  WEB_DIR: $WEB_DIR
-  DATA_DIR: $DATA_DIR
-  CONF_DIR: $CONF_DIR
-  INSTALL_DIR: $INSTALL_DIR"
+        echo -e "\n\n\ncurrentDate: $currentDate\ncurrentTime: $currentTime\n sysOS: $sysOS\nsysRelease: $sysRelease\nsysVersion: $sysVersion\nsysMemory: $sysMemory\nrepoCMD: $repoCMD\nrepoHost: $repoHost\nrepoFiles: $repoFiles\nrepoKey: $repoKey\nadminUser: $adminUser\nsshPort: $sshPort\nvestaPort: $vestaPort\npkgConflicts: $pkgConflicts\nSRC_DIR: $SRC_DIR\nBIN_DIR: $BIN_DIR\nWEB_DIR: $WEB_DIR\nDATA_DIR: $DATA_DIR\nCONF_DIR: $CONF_DIR\nINSTALL_DIR: $INSTALL_DIR"
         exit $1
     fi
 }
