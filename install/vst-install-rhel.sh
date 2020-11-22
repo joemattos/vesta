@@ -51,7 +51,7 @@ vestacp="$VESTA/install/$VERSION/7" ### REMOVE BEFORE RELEASE
   repoCMD="dnf" ### CentOS
   repoHost="http://r.vestacp.com/cmmnt/${sysRelease}/" ### CentOS
   repoFiles="http://c.vestacp.com/0.9.8" ### CentOS
-  repoKey="${repoFiles_Vesta}/${sysVersion}/${sysRelease}/G2PG.txt" ### CentOS
+  repoKey="${repoFiles}/${sysVersion}/${sysRelease}/G2PG.txt" ### CentOS
 
   adminUser="admin"
   sshPort="22"
