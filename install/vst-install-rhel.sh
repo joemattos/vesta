@@ -46,7 +46,6 @@ vestacp="$VESTA/install/$VERSION/7" ### REMOVE BEFORE RELEASE
   sysOS="$(cut -f 1 -d ' ' /etc/redhat-release | tr '[:upper:]' '[:lower:]')"
   sysRelease="$(grep -o "[0-9]" /etc/redhat-release | head -n1)"
   sysVersion="rhel"
-  
   sysMemory="$(grep 'MemTotal' /proc/meminfo | tr ' ' '\n' | grep [0-9])" ### No Arch
 
   repoCMD="dnf" ### CentOS
